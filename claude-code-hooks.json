@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/mnt/c/Users/hplan/watch-approval/hook/watch-approve.py",
+            "timeout": 360000
+          }
+        ]
+      }
+    ]
+  }
+}

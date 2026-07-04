@@ -1,0 +1,8 @@
+__pycache__/
+.venv/
+*.pyc
+.hermes/
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+.DS_Store
