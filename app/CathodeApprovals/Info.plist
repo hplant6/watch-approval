@@ -30,5 +30,12 @@
 	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Cathode Approvals connects to the relay server on your local network to send and receive tool approval decisions.</string>
 </dict>
 </plist>

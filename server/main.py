@@ -129,8 +129,12 @@ async def send_push_notification(request_id: str, tool_name: str, tool_input: di
     try:
         from aioapns import APNs, NotificationRequest, PushType  # type: ignore[import-untyped]
 
+        # aioapns expects the key *content*, not a file path
+        with open(APNS_KEY_PATH) as f:
+            key_content = f.read()
+
         client = APNs(
-            key=APNS_KEY_PATH,
+            key=key_content,
             key_id=APNS_KEY_ID,
             team_id=APNS_TEAM_ID,
             topic=APNS_TOPIC,
