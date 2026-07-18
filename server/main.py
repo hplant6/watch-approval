@@ -56,9 +56,10 @@ class ApprovalRequest:
     id: str
     tool_name: str
     tool_input: dict
-    status: str  # "pending" | "approved" | "denied" | "timeout"
+    status: str  # "pending" | "approved" | "denied" | "timeout" | "cancelled"
     created_at: float = field(default_factory=time.time)
     respond_by: float = field(default_factory=lambda: time.time() + REQUEST_TIMEOUT)
+    summary: str | None = None
 
     def is_expired(self) -> bool:
         return time.time() > self.respond_by
@@ -78,6 +79,11 @@ _device_tokens: set[str] = set()
 class RequestSubmit(BaseModel):
     tool_name: str
     tool_input: dict
+    # Optional caller-built notification text + tool kind. When Cathode submits a
+    # request it knows the best summary (the ACP toolCall title); fall back to the
+    # server's own summarizer when absent (e.g. the plain curl test).
+    summary: str | None = None
+    kind: str | None = None
 
 
 class RequestResponse(BaseModel):
@@ -117,7 +123,7 @@ def verify_auth(authorization: str | None = Header(None)) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def send_push_notification(request_id: str, tool_name: str, tool_input: dict):
+async def send_push_notification(request_id: str, tool_name: str, tool_input: dict, summary: str | None = None):
     """Send an APNs push notification to all registered devices."""
     if not _device_tokens:
         log.warning("No registered devices — push notification skipped")
@@ -141,12 +147,12 @@ async def send_push_notification(request_id: str, tool_name: str, tool_input: di
             use_sandbox=APNS_USE_SANDBOX,
         )
 
-        # Build a human-readable summary
-        summary = _summarize_request(tool_name, tool_input)
+        # Prefer the caller's summary; fall back to the server's own guesser.
+        summary = summary or _summarize_request(tool_name, tool_input)
         payload = {
             "aps": {
                 "alert": {
-                    "title": "Claude Code Approval",
+                    "title": "Cathode Approval",
                     "body": summary,
                 },
                 "category": "APPROVAL_REQUEST",
@@ -229,8 +235,10 @@ async def submit_request(body: RequestSubmit, auth=Header(None)):
 
     log.info(f"New request {request_id}: {body.tool_name}")
 
+    req.summary = body.summary
+
     # Send push notification asynchronously
-    await send_push_notification(request_id, body.tool_name, body.tool_input)
+    await send_push_notification(request_id, body.tool_name, body.tool_input, body.summary)
 
     return RequestResponse(request_id=request_id, status="pending")
 
@@ -271,6 +279,20 @@ async def respond(request_id: str, body: WatchResponse):
     log.info(f"Request {request_id}: {req.status}")
 
     return {"status": "ok", "request_id": request_id, "decision": req.status}
+
+
+@app.post("/api/cancel/{request_id}")
+async def cancel(request_id: str, auth=Header(None)):
+    """Cathode marks a request handled elsewhere (in-app decision won the race), so a
+    late watch tap gets a clean 409 instead of flipping an already-resolved prompt."""
+    verify_auth(auth)
+    req = _pending.get(request_id)
+    if req is None:
+        return {"status": "not_found", "request_id": request_id}
+    if req.status == "pending":
+        req.status = "cancelled"
+        log.info(f"Request {request_id} cancelled (decided in-app)")
+    return {"status": req.status, "request_id": request_id}
 
 
 # ---------------------------------------------------------------------------
