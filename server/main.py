@@ -34,7 +34,12 @@ REQUEST_TIMEOUT = int(os.environ.get("WATCH_APPROVAL_TIMEOUT", "300"))  # second
 APNS_KEY_PATH = os.environ.get("WATCH_APPROVAL_APNS_KEY")
 APNS_KEY_ID = os.environ.get("WATCH_APPROVAL_APNS_KEY_ID")
 APNS_TEAM_ID = os.environ.get("WATCH_APPROVAL_APNS_TEAM_ID")
-APNS_TOPIC = os.environ.get("WATCH_APPROVAL_APNS_TOPIC")  # bundle ID
+APNS_TOPIC = os.environ.get("WATCH_APPROVAL_APNS_TOPIC")  # bundle ID (e.g. com.cathode.approvals)
+# A build signed with `aps-environment: development` (Xcode run/debug) talks to the
+# APNs SANDBOX. Only a TestFlight/App Store build uses production. Default to sandbox
+# so on-device dev builds actually receive pushes; set WATCH_APPROVAL_APNS_SANDBOX=0
+# once you ship a production build.
+APNS_USE_SANDBOX = os.environ.get("WATCH_APPROVAL_APNS_SANDBOX", "1") not in ("0", "false", "False", "")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("watch-approval")
@@ -129,7 +134,7 @@ async def send_push_notification(request_id: str, tool_name: str, tool_input: di
             key_id=APNS_KEY_ID,
             team_id=APNS_TEAM_ID,
             topic=APNS_TOPIC,
-            use_sandbox=False,
+            use_sandbox=APNS_USE_SANDBOX,
         )
 
         # Build a human-readable summary

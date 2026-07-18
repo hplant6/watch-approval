@@ -1,0 +1,36 @@
+name: CathodeApprovals
+options:
+  bundleIdPrefix: com.cathode
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1" # iPhone
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    GENERATE_INFOPLIST_FILE: NO
+
+targets:
+  CathodeApprovals:
+    type: application
+    platform: iOS
+    sources:
+      - path: CathodeApprovals
+        type: group
+    settings:
+      base:
+        INFOPLIST_FILE: CathodeApprovals/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.cathode.approvals
+        PRODUCT_NAME: "Cathode Approvals"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: "R5T9D4ATJQ"
+    dependencies: []
+    entitlements:
+      path: CathodeApprovals/CathodeApprovals.entitlements
+      properties:
+        # Development build → APNs *sandbox*. Switch to "production" for TestFlight/App Store.
+        aps-environment: development
