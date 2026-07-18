@@ -150,7 +150,7 @@ async def send_push_notification(request_id: str, tool_name: str, tool_input: di
                     "body": summary,
                 },
                 "category": "APPROVAL_REQUEST",
-                "sound": "default",
+                "sound": "permission.aiff",
                 "badge": 1,
                 "mutable-content": 1,
             },
