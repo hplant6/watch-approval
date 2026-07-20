@@ -1,0 +1,25 @@
+# Native (non-Docker) alternative — systemd unit.
+#   1. On the Pi:  cd ~/watch-approval/server && uv sync
+#   2. Put your APNs env in  ~/watch-approval/server/relay.env  (see .env.example keys,
+#      plus WATCH_APPROVAL_APNS_KEY=/absolute/path/AuthKey_7Z385599QY.p8)
+#   3. Edit the paths/User below, then:
+#        sudo cp deploy/watch-approval.service /etc/systemd/system/
+#        sudo systemctl enable --now watch-approval
+#   4. Logs:  journalctl -u watch-approval -f
+
+[Unit]
+Description=Watch Approval Relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/watch-approval/server
+EnvironmentFile=/home/pi/watch-approval/server/relay.env
+ExecStart=/home/pi/watch-approval/server/.venv/bin/python main.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

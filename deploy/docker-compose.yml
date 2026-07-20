@@ -1,0 +1,31 @@
+# Watch Approval relay — always-on deployment for a Raspberry Pi / Linux box.
+#
+#   1. Put your APNs key here as   deploy/AuthKey.p8   (gitignored)
+#   2. cp .env.example .env        and fill it in
+#   3. docker compose up -d --build
+#
+# The container restarts on boot/crash. Device tokens persist in the named volume,
+# so your phone registers once and stays registered across restarts.
+
+services:
+  watch-approval:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: watch-approval-relay
+    container_name: watch-approval
+    restart: unless-stopped
+    ports:
+      - "8420:8420"
+    env_file:
+      - .env
+    environment:
+      # Container-internal paths (override anything in .env)
+      - WATCH_APPROVAL_APNS_KEY=/keys/AuthKey.p8
+      - WATCH_APPROVAL_TOKENS_FILE=/data/device_tokens.json
+    volumes:
+      - ./AuthKey.p8:/keys/AuthKey.p8:ro
+      - watch-approval-data:/data
+
+volumes:
+  watch-approval-data:
