@@ -13,6 +13,7 @@ Endpoints:
 """
 
 import os
+import json
 import uuid
 import time
 import hmac
@@ -68,8 +69,31 @@ class ApprovalRequest:
 # In-memory store. Replace with Redis or SQLite for persistence across restarts.
 _pending: dict[str, ApprovalRequest] = {}
 
-# Registered device tokens for APNs push
-_device_tokens: set[str] = set()
+# Registered device tokens for APNs push. Persisted to disk so a shared/always-on relay
+# only needs each device to register once (survives restarts). Override the path with
+# WATCH_APPROVAL_TOKENS_FILE.
+TOKENS_FILE = os.environ.get(
+    "WATCH_APPROVAL_TOKENS_FILE", os.path.join(os.path.dirname(__file__), "device_tokens.json")
+)
+
+
+def _load_tokens() -> set[str]:
+    try:
+        with open(TOKENS_FILE) as f:
+            return set(json.load(f))
+    except Exception:
+        return set()
+
+
+def _save_tokens() -> None:
+    try:
+        with open(TOKENS_FILE, "w") as f:
+            json.dump(sorted(_device_tokens), f)
+    except Exception as e:
+        log.warning(f"Could not persist device tokens: {e}")
+
+
+_device_tokens: set[str] = _load_tokens()
 
 # ---------------------------------------------------------------------------
 # Models
@@ -210,7 +234,8 @@ async def register_device(body: DeviceRegistration, auth=Header(None)):
     """Register a device token for push notifications."""
     verify_auth(auth)
     _device_tokens.add(body.device_token)
-    log.info(f"Device registered: {body.device_token[:20]}...")
+    _save_tokens()
+    log.info(f"Device registered: {body.device_token[:20]}... ({len(_device_tokens)} total)")
     return {"status": "registered", "device_count": len(_device_tokens)}
 
 

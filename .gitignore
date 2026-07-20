@@ -13,3 +13,6 @@ server/README.md
 AuthKey_*.p8
 .env
 *.local.env
+
+# Persisted APNs device tokens (relay state)
+device_tokens.json
